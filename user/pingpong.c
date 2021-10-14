@@ -2,8 +2,7 @@
 #include "user.h"
 #define BUFFER_SIZE 5
 
-int main(int argc,char* argv[]){
-    /* 子进程读管道，父进程写管道 */
+int main(int argc, char* argv[]) {
     int p[2];
     int q[2];
     int pid;
@@ -12,8 +11,7 @@ int main(int argc,char* argv[]){
     pipe(p);
     pipe(q);
     int ret = fork();
-    if (ret == 0) { 
-        /* 子进程 */
+    if (ret == 0) {
         pid = getpid();
 
         close(p[1]); // 关闭写端
@@ -26,8 +24,7 @@ int main(int argc,char* argv[]){
         close(q[1]); // 写入完成，关闭写端
 
         exit(0);
-    } else if (ret>0) { 
-        /* 父进程 */
+    } else if (ret > 0) {
         pid = getpid();
 
         close(p[0]); // 关闭读端
