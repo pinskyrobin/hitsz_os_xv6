@@ -7,11 +7,11 @@
 #include "syscall.h"
 #include "defs.h"
 
-char* syscall_name[23] = {0, "sys_fork", "sys_exit", "sys_wait", "sys_pipe", "sys_read", 
+char* syscall_name[24] = {0, "sys_fork", "sys_exit", "sys_wait", "sys_pipe", "sys_read", 
                           "sys_kill", "sys_exec", "sys_fstat", "sys_chdir", "sys_dup", 
                           "sys_getpid", "sys_sbrk", "sys_sleep", "sys_uptime", "sys_open", 
                           "sys_write", "sys_mknod", "sys_unlink", "sys_link", "sys_mkdir", 
-                          "sys_close", "sys_trace"};
+                          "sys_close", "sys_trace", "sys_sysinfo"};
 
 // Fetch the uint64 at addr from the current process.
 int
@@ -106,6 +106,7 @@ extern uint64 sys_pipe(void);
 extern uint64 sys_read(void);
 extern uint64 sys_sbrk(void);
 extern uint64 sys_sleep(void);
+extern uint64 sys_sysinfo(void);
 extern uint64 sys_trace(void);
 extern uint64 sys_unlink(void);
 extern uint64 sys_wait(void);
@@ -134,7 +135,8 @@ static uint64 (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
-[SYS_trace]   sys_trace
+[SYS_trace]   sys_trace,
+[SYS_sysinfo] sys_sysinfo
 };
 
 void

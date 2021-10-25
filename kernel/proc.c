@@ -696,3 +696,29 @@ procdump(void)
     printf("\n");
   }
 }
+
+int
+cal_freeproc(void)
+{
+  int cnt = 0;
+  struct proc *p;
+  for (p = proc; p < &proc[NPROC]; p++){
+    if (p->state == 0) {
+      cnt++;
+    }
+  }
+  return cnt;
+}
+
+int
+cal_freefd(void)
+{
+  int i, cnt = 0;
+  struct proc *p = myproc();
+  for (i = 0; i < NOFILE; i++) {
+    if (!p->ofile[i]) {
+      cnt++;
+    }
+  }
+  return cnt;
+}
