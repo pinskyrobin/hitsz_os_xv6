@@ -25,6 +25,9 @@ struct kmem{
 
 struct kmem kmems[NCPU];
 
+/**
+ * 获取 cpu 的编号
+ **/
 int
 get_cpu_id()
 {
@@ -34,6 +37,10 @@ get_cpu_id()
   return cpu_id;
 }
 
+
+/**
+ * 为每个 cpu 分配锁
+ **/
 void
 kinit()
 {
@@ -90,12 +97,15 @@ kalloc(void)
 
   int cpu_id = get_cpu_id();
 
+  // 先看自己的 freelist 有无合适的空闲页
   acquire(&kmems[cpu_id].lock);
   r = kmems[cpu_id].freelist;
   if (r) {
     kmems[cpu_id].freelist = r->next;
     release(&kmems[cpu_id].lock);
-  } else {
+  }
+  // 若没有，则去其他 cpu 的 freelist 里康康
+  else {
     int steal_cpu_id = (cpu_id == 0) ? 1 : 0;
     release(&kmems[cpu_id].lock);
     while (steal_cpu_id < 8) {
