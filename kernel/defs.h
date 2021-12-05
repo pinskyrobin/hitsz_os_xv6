@@ -182,8 +182,10 @@ int             copyinstr(pagetable_t, char *, uint64, uint64);
 int             test_pagetable();
 void            vmprint(pagetable_t);
 void            kvmmap_init(pagetable_t);
-int             kvmcopy(pagetable_t old, pagetable_t new, uint64 start, uint64 sz);
-uint64          kvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz);
+void            kvmcopy(pagetable_t, pagetable_t);
+uint64          kvmdealloc(pagetable_t, uint64, uint64);
+void            freewalk(pagetable_t);
+pagetable_t     get_kernel_pagetable(void);
 // plic.c
 void            plicinit(void);
 void            plicinithart(void);

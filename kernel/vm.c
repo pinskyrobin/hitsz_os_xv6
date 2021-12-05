@@ -5,8 +5,6 @@
 #include "riscv.h"
 #include "defs.h"
 #include "fs.h"
-#include "spinlock.h"
-#include "proc.h"
 
 /*
  * the kernel's page table.
@@ -142,10 +140,8 @@ kvmpa(uint64 va)
   uint64 off = va % PGSIZE;
   pte_t *pte;
   uint64 pa;
-  
-  struct proc *curr_proc = myproc();
 
-  pte = walk(curr_proc->kpagetable, va, 0);
+  pte = walk(kernel_pagetable, va, 0);
   if(pte == 0)
     panic("kvmpa");
   if((*pte & PTE_V) == 0)
@@ -169,8 +165,8 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
   for(;;){
     if((pte = walk(pagetable, a, 1)) == 0)
       return -1;
-    // if(*pte & PTE_V)
-    //   panic("remap");
+    if(*pte & PTE_V)
+      panic("remap");
     *pte = PA2PTE(pa) | perm | PTE_V;
     if(a == last)
       break;
@@ -410,7 +406,7 @@ copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
   //   srcva = va0 + PGSIZE;
   // }
   // return 0;
-
+  w_sstatus(r_sstatus() | SSTATUS_SUM);
   return copyin_new(pagetable, dst, srcva, len);
 }
 
@@ -455,7 +451,7 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   // } else {
   //   return -1;
   // }
-
+  w_sstatus(r_sstatus() | SSTATUS_SUM);
   return copyinstr_new(pagetable, dst, srcva, max);
 }
 
@@ -500,37 +496,20 @@ vmprint(pagetable_t pgtbl)
 
 
 // based on function uvmcopy()
-int
-kvmcopy(pagetable_t old, pagetable_t new, uint64 start, uint64 sz)
+void
+kvmcopy(pagetable_t src, pagetable_t dst)
 {
-  pte_t *pte;
-  uint64 pa, i;
-  uint flags;
-
-  // align pagetable
-  for(i = PGROUNDUP(start); i < start + sz; i += PGSIZE){
-    if((pte = walk(old, i, 0)) == 0)
-      panic("kvmcopy: pte should exist");
-    if((*pte & PTE_V) == 0)
-      panic("kvmcopy: page not present");
-    pa = PTE2PA(*pte);
-
-    // block the kernel from visiting user pages 
-    flags = PTE_FLAGS(*pte) & ~PTE_U;
-    // if((mem = kalloc()) == 0)
-    //   goto err;
-    // memmove(mem, (char*)pa, PGSIZE);
-    if(mappages(new, i, PGSIZE, pa, flags) != 0){
-      // kfree(mem);
-      goto err;
-    }
+  pte_t src_sec_pgtbl = src[0];
+  pte_t dst_sec_pgtbl = dst[0];
+  uint64 src_sec_pgtbl_pa = PTE2PA(src_sec_pgtbl);
+  uint64 dst_sec_pgtbl_pa = PTE2PA(dst_sec_pgtbl);
+  pte_t src_leaf, *dst_leaf;
+  for (int i = 0; i < 96; i++)
+  {
+    src_leaf = ((pagetable_t)src_sec_pgtbl_pa)[i];
+    dst_leaf = &(((pagetable_t)dst_sec_pgtbl_pa)[i]);
+    *dst_leaf = src_leaf;
   }
-  return 0;
-
- err:
-  // donot free physical memory 
-  uvmunmap(new, 0, i / PGSIZE, 0);
-  return -1;
 }
 
 
@@ -548,4 +527,10 @@ kvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
   }
 
   return newsz;
+}
+
+pagetable_t
+get_kernel_pagetable()
+{
+  return kernel_pagetable;
 }

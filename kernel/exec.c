@@ -112,10 +112,6 @@ exec(char *path, char **argv)
     if(*s == '/')
       last = s+1;
   safestrcpy(p->name, last, sizeof(p->name));
-  
-  // flush old mapping, build new mapping
-  uvmunmap(p->kpagetable, 0, PGROUNDDOWN(oldsz) / PGSIZE, 0);
-  kvmcopy(pagetable, p->kpagetable, 0, sz);
 
   // Commit to the user image.
   oldpagetable = p->pagetable;
@@ -128,6 +124,8 @@ exec(char *path, char **argv)
   if (p->pid == 1) {
     vmprint(p->pagetable);
   }
+
+  kvmcopy(p->pagetable, p->kpagetable);
 
   return argc; // this ends up in a0, the first argument to main(argc, argv)
 
