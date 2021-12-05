@@ -147,7 +147,7 @@ freeproc(struct proc *p)
   p->trapframe = 0;
 
   uint64 secondary_pagetable = PTE2PA(p->kpagetable[0]);
-  for (int i = 0; i < 96; i++)
+  for (int i = 0; i < ADDR_SIZE / (PGTBL_SIZE * PTE_NUM); i++)
   {
     ((pagetable_t)secondary_pagetable)[i] = 0;
   }
@@ -731,13 +731,8 @@ procdump(void)
 void
 proc_freekpagetable(pagetable_t kpagetable)
 {
-  // uint64 secondary_pagetable = PTE2PA(kpagetable[0]);
-  // for (int i = 0; i < 96; i++)
-  // {
-  //   ((pagetable_t)secondary_pagetable)[i] = 0;
-  // }
   
-  for(int i = 0; i < 512; i++){
+  for(int i = 0; i < PTE_NUM; i++){
     pte_t pte = kpagetable[i];
     if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0){
       // this PTE points to a lower-level page table.

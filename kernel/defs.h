@@ -13,6 +13,11 @@ struct mbuf;
 struct sock;
 #endif
 
+#define PTE_NUM 512
+#define PGTBL_SIZE 4096
+#define ADDR_SIZE 0xC000000
+
+
 // bio.c
 void            binit(void);
 struct buf*     bread(uint, uint);

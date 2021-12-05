@@ -285,15 +285,13 @@ void
 freewalk(pagetable_t pagetable)
 {
   // there are 2^9 = 512 PTEs in a page table.
-  for(int i = 0; i < 512; i++){
+  for(int i = 0; i < PTE_NUM; i++){
     pte_t pte = pagetable[i];
     if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0){
       // this PTE points to a lower-level page table.
       uint64 child = PTE2PA(pte);
       freewalk((pagetable_t)child);
       pagetable[i] = 0;  
-    } else if(pte & PTE_V){
-      panic("freewalk: leaf");
     }
   }
   kfree((void*)pagetable);
@@ -468,7 +466,7 @@ test_pagetable()
 void
 _vmprint(pagetable_t pgtbl, int depth)
 {
-  for (int i = 0; i < 512; i++) { 
+  for (int i = 0; i < PTE_NUM; i++) { 
     pte_t pte = pgtbl[i];
     if (pte & PTE_V) {
       uint64 child = PTE2PA(pte);
@@ -495,39 +493,26 @@ vmprint(pagetable_t pgtbl)
 }
 
 
-// based on function uvmcopy()
 void
 kvmcopy(pagetable_t src, pagetable_t dst)
 {
+  // get the va of the secondary kernel pagetable
   pte_t src_sec_pgtbl = src[0];
   pte_t dst_sec_pgtbl = dst[0];
+
+  // get the pa of the secondary kernel pagetable
   uint64 src_sec_pgtbl_pa = PTE2PA(src_sec_pgtbl);
   uint64 dst_sec_pgtbl_pa = PTE2PA(dst_sec_pgtbl);
-  pte_t src_leaf, *dst_leaf;
-  for (int i = 0; i < 96; i++)
+
+  // just copy!
+  pte_t *dst_leaf;
+  for (int i = 0; i < ADDR_SIZE / (PGTBL_SIZE * PTE_NUM); i++)
   {
-    src_leaf = ((pagetable_t)src_sec_pgtbl_pa)[i];
     dst_leaf = &(((pagetable_t)dst_sec_pgtbl_pa)[i]);
-    *dst_leaf = src_leaf;
+    *dst_leaf = ((pagetable_t)src_sec_pgtbl_pa)[i];
   }
 }
 
-
-// based on uvmdealloc()
-uint64
-kvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
-{
-  if(newsz >= oldsz)
-    return oldsz;
-
-  if(PGROUNDUP(newsz) < PGROUNDUP(oldsz)){
-    int npages = (PGROUNDUP(oldsz) - PGROUNDUP(newsz)) / PGSIZE;
-    // donot free physical memory
-    uvmunmap(pagetable, PGROUNDUP(newsz), npages, 0);
-  }
-
-  return newsz;
-}
 
 pagetable_t
 get_kernel_pagetable()
